@@ -1,5 +1,5 @@
 #!/user/bin/python
-import django.contrib.auth.models.Group
+from django.contrib.auth.models import Group
 
 names = ['Administrador', 'Autor', 'Operador de Administração',
          'Operador de Comissão', 'Operador de Matéria Legislativa',
