@@ -5,6 +5,7 @@ import re
 from datetime import date
 from functools import wraps
 from unicodedata import normalize as unicodedata_normalize
+from urllib.parse import parse_qs, urlparse
 
 import django_filters
 import magic
@@ -13,10 +14,12 @@ from crispy_forms.layout import HTML, Button
 from django import forms
 from django.apps import apps
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib import admin
 from django.contrib.contenttypes.fields import (GenericForeignKey, GenericRel,
                                                 GenericRelation)
 from django.core.exceptions import ValidationError
+from django.shortcuts import redirect
 from django.utils.translation import ugettext_lazy as _
 from floppyforms import ClearableFileInput
 from reversion.admin import VersionAdmin
@@ -366,8 +369,8 @@ def fabrica_validador_de_tipos_de_arquivo(lista, nome):
 
     def restringe_tipos_de_arquivo(value):
         if not os.path.splitext(value.path)[1][:1]:
-                raise ValidationError(_(
-                    'Não é possível fazer upload de arquivos sem extensão.'))
+            raise ValidationError(_(
+                'Não é possível fazer upload de arquivos sem extensão.'))
 
         mime = magic.from_buffer(value.read(), mime=True)
         if mime not in lista:
@@ -632,3 +635,17 @@ def texto_upload_path(instance, filename, subpath=''):
         }
 
     return path
+
+
+@listify
+def redirecionamento_urls_antigas(namespace, *antigos_para_novos):
+    for url_antiga, destino in antigos_para_novos:
+        partes = urlparse(url_antiga)
+        regex = '^{}$'.format(partes.path)
+        pk_antiga = parse_qs(partes.query).keys()
+
+        def view_redirecionamento(request):
+            args = [request.GET[k] for k in pk_antiga]
+            return redirect('{}:{}'.format(namespace, destino), *args)
+
+        yield url(regex, view_redirecionamento)
