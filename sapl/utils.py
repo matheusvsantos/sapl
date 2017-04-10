@@ -637,15 +637,24 @@ def texto_upload_path(instance, filename, subpath=''):
     return path
 
 
+def build_redirect_view(nome, lista_pk_antiga):
+
+    def view(request):
+        args = [request.GET[k] for k in lista_pk_antiga]
+        return redirect(nome, *args)
+
+    return view
+
+
 @listify
 def redirecionamento_urls_antigas(namespace, *antigos_para_novos):
     for url_antiga, destino in antigos_para_novos:
+
         partes = urlparse(url_antiga)
         regex = '^{}$'.format(partes.path)
-        pk_antiga = parse_qs(partes.query).keys()
+        lista_pk_antiga = parse_qs(partes.query).keys()
 
-        def view_redirecionamento(request):
-            args = [request.GET[k] for k in pk_antiga]
-            return redirect('{}:{}'.format(namespace, destino), *args)
+        nome = '{}:{}'.format(namespace, destino) if namespace else destino
+        view = build_redirect_view(nome, lista_pk_antiga)
 
-        yield url(regex, view_redirecionamento)
+        yield url(regex, view)
